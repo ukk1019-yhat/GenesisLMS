@@ -51,6 +51,7 @@ export default function Layout({ children }) {
             <Link href="/contact" className="hover:text-white transition">Contact</Link>
           </div>
           <p className="text-gray-500 text-sm mt-6">&copy; {new Date().getFullYear()} Genesis International School. All rights reserved.</p>
+          <p className="text-gray-600 text-xs mt-1">Designed by Edu Alt Tech</p>
         </div>
       </footer>
     </div>
