@@ -10,6 +10,9 @@ body {
   .btn-primary {
     @apply bg-school-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-school-secondary transition disabled:opacity-50;
   }
+  .btn-secondary {
+    @apply bg-white text-school-primary border-2 border-school-primary px-4 py-2 rounded-lg font-medium hover:bg-school-light transition disabled:opacity-50;
+  }
   .btn-danger {
     @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition;
   }

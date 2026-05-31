@@ -3,6 +3,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { UploadIcon, SearchIcon, CheckIcon, AlertIcon } from '../../components/Icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
@@ -12,15 +13,36 @@ export default function Students() {
   const isAdmin = user?.role === 'admin';
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [classes, setClasses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '' });
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkData, setBulkData] = useState('');
+  const [bulkResult, setBulkResult] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const loadStudents = () => {
-    axios.get(`${API}/students?search=${search}`, headers()).then(r => setStudents(r.data.students)).catch(() => {});
+    const params = new URLSearchParams({ search });
+    if (classFilter) params.append('class', classFilter);
+    axios.get(`${API}/students?${params}`, headers()).then(r => {
+      setStudents(r.data.students);
+      const unique = [...new Set(r.data.students.map(s => s.class).filter(Boolean))].sort();
+      setClasses(prev => prev.length ? prev : unique);
+    }).catch(() => {});
   };
 
-  useEffect(() => { loadStudents(); }, [search]);
+  useEffect(() => { loadStudents(); }, [search, classFilter]);
+
+  const loadAllClasses = () => {
+    axios.get(`${API}/students?limit=500`, headers()).then(r => {
+      const unique = [...new Set(r.data.students.map(s => s.class).filter(Boolean))].sort();
+      setClasses(unique);
+    }).catch(() => {});
+  };
+
+  useEffect(() => { loadAllClasses(); }, []);
 
   const resetForm = () => {
     setForm({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '' });
@@ -59,28 +81,110 @@ export default function Students() {
     }
   };
 
+  const handleBulkImport = async () => {
+    let students;
+    try {
+      students = JSON.parse(bulkData);
+    } catch {
+      alert('Invalid JSON. Please check the format.');
+      return;
+    }
+    if (!Array.isArray(students) || students.length === 0) {
+      alert('Please provide an array of student objects.');
+      return;
+    }
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const res = await axios.post(`${API}/students/bulk-import`, { students }, headers());
+      setBulkResult(res.data);
+      setBulkData('');
+      loadStudents();
+      loadAllClasses();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error importing students');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-2xl font-bold">Student Management</h2>
-            {isAdmin && (
-              <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary">
-                + Add Student
-              </button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {isAdmin && (
+                <button onClick={() => { setShowBulk(!showBulk); setShowForm(false); }} className="btn-secondary text-sm flex items-center space-x-1">
+                  <UploadIcon /><span>Bulk Import</span>
+                </button>
+              )}
+              {isAdmin && (
+                <button onClick={() => { resetForm(); setShowForm(true); setShowBulk(false); }} className="btn-primary">
+                  + Add Student
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="relative">
-            <input
-              className="input-field pl-10"
-              placeholder="Search by name, roll number, or parent phone..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <input
+                className="input-field pl-10"
+                placeholder="Search by name, roll number, or parent phone..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400"><SearchIcon /></span>
+            </div>
+            <select
+              className="input-field w-auto"
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
+
+          {showBulk && isAdmin && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4">Bulk Import Students</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Paste a JSON array of student objects. Required fields: <code>name</code>, <code>roll_number</code>, <code>class</code>.
+              </p>
+              <div className="bg-gray-50 p-3 rounded-lg mb-3 text-xs font-mono text-gray-600">
+                [{'{'}"name":"John Doe","roll_number":"2401","class":"Class 1","section":"A","parent_name":"Jane Doe","parent_phone":"9876543210","parent_email":"jane@example.com"{'}'}]
+              </div>
+              <textarea
+                className="input-field font-mono text-sm"
+                rows={8}
+                placeholder='[{ "name": "...", "roll_number": "...", "class": "...", "section": "...", "parent_name": "...", "parent_phone": "..." }]'
+                value={bulkData}
+                onChange={e => setBulkData(e.target.value)}
+              />
+              <div className="flex space-x-3 mt-3">
+                <button onClick={handleBulkImport} disabled={bulkLoading} className="btn-primary">
+                  {bulkLoading ? 'Importing...' : 'Import Students'}
+                </button>
+                <button onClick={() => { setShowBulk(false); setBulkResult(null); setBulkData(''); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+              </div>
+              {bulkResult && (
+                <div className={`mt-3 p-3 rounded-lg text-sm ${bulkResult.errors?.length ? 'bg-yellow-50 text-yellow-800' : 'bg-green-50 text-green-700'}`}>
+                  <p className="flex items-center space-x-1"><CheckIcon /><span>{bulkResult.imported} students imported successfully.</span></p>
+                  {bulkResult.errors?.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-medium flex items-center space-x-1"><AlertIcon /><span>{bulkResult.errors.length} errors:</span></p>
+                      <ul className="list-disc list-inside text-xs mt-1">
+                        {bulkResult.errors.map((e, i) => <li key={i}>{e.student}: {e.error}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {showForm && isAdmin && (
             <div className="card">

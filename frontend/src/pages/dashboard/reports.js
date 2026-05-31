@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { PeopleIcon, CurrencyIcon, ClockIcon, CheckCircleIcon } from '../../components/Icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
@@ -31,6 +32,12 @@ export default function Reports() {
   }, [reportMonth, reportYear]);
 
   const totalStudents = classDist.reduce((sum, c) => sum + parseInt(c.count), 0);
+  const statCards = [
+    { icon: PeopleIcon, label: 'Total Students', value: stats?.totalStudents || 0, color: 'text-school-primary' },
+    { icon: CurrencyIcon, label: 'Total Collected', value: `₹${(stats?.feesCollected || 0).toLocaleString()}`, color: 'text-green-600' },
+    { icon: ClockIcon, label: 'Pending Fees', value: `₹${(stats?.pendingFees || 0).toLocaleString()}`, color: 'text-red-500' },
+    { icon: CheckCircleIcon, label: 'Attendance', value: `${stats?.attendancePercentage || 0}%`, color: 'text-blue-600' },
+  ];
 
   return (
     <ProtectedRoute>
@@ -39,14 +46,9 @@ export default function Reports() {
           <h2 className="text-2xl font-bold">Reports & Analytics</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { icon: '👨‍🎓', label: 'Total Students', value: stats?.totalStudents || 0 },
-              { icon: '💰', label: 'Total Collected', value: `₹${(stats?.feesCollected || 0).toLocaleString()}` },
-              { icon: '⏳', label: 'Pending Fees', value: `₹${(stats?.pendingFees || 0).toLocaleString()}` },
-              { icon: '📊', label: 'Attendance', value: `${stats?.attendancePercentage || 0}%` },
-            ].map((item, i) => (
+            {statCards.map((item, i) => (
               <div key={i} className="stat-card">
-                <div className="text-3xl">{item.icon}</div>
+                <div className={item.color}><item.icon /></div>
                 <div>
                   <p className="text-2xl font-bold">{item.value}</p>
                   <p className="text-gray-500 text-sm">{item.label}</p>

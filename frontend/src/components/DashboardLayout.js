@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }) {
           <button onClick={() => setSidebarOpen(true)} className="md:hidden text-2xl mr-4">
             ☰
           </button>
-          <h1 className="text-xl font-semibold text-gray-800">School Management Portal</h1>
+          <h1 className="text-xl font-semibold text-gray-800">Genesis International — Management Portal</h1>
         </header>
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
           {children}

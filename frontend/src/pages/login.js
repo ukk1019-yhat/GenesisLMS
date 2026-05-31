@@ -28,8 +28,10 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-school-primary to-school-dark flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-school-primary">📚 SchoolName</h1>
-          <p className="text-gray-500 mt-2">Staff Login Portal</p>
+          <img src="/logo.png" alt="Genesis Logo" className="h-16 w-auto mx-auto mb-3" />
+          <h1 className="text-2xl font-bold text-school-primary">Genesis International School</h1>
+          <p className="text-school-accent font-medium text-sm italic mt-1">Learn · Lead · Achieve</p>
+          <p className="text-gray-500 mt-2 text-sm">Staff Login Portal</p>
         </div>
 
         {error && (

@@ -12,56 +12,105 @@ export default function Admissions() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <h1 className="text-4xl font-bold mb-4">Admissions</h1>
-        <p className="text-lg text-gray-600 mb-8">Join SchoolName for the academic year 2024-25. Admissions are open for classes Nursery to XII.</p>
+      {/* Hero */}
+      <section className="bg-gradient-to-br from-school-primary to-school-dark text-white py-16">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <p className="text-school-accent font-semibold uppercase tracking-widest text-sm mb-2">Join Us</p>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Admissions Open</h1>
+          <p className="text-gray-300 text-lg">
+            Enrol at Genesis International School for the academic year 2025–26.
+            Admissions are open for Nursery to Class XII.
+          </p>
+        </div>
+      </section>
 
-        <div className="grid md:grid-cols-2 gap-8">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-2 gap-10">
+          {/* Left column */}
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Admission Process</h2>
+            <h2 className="text-2xl font-semibold text-school-primary mb-5">Admission Process</h2>
             <ol className="space-y-4 text-gray-600">
               {[
-                'Fill the inquiry form',
-                'Visit school for interaction',
-                'Submit required documents',
-                'Complete the admission formalities',
+                'Fill the inquiry form online or visit our office.',
+                'Attend a school interaction / entrance assessment.',
+                'Submit all required documents.',
+                'Complete admission formalities and fee payment.',
               ].map((step, i) => (
                 <li key={i} className="flex items-start">
-                  <span className="bg-school-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 shrink-0">{i + 1}</span>
+                  <span className="bg-school-primary text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 shrink-0 font-bold">{i + 1}</span>
                   {step}
                 </li>
               ))}
             </ol>
 
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Documents Required</h2>
+            <h2 className="text-2xl font-semibold text-school-primary mt-10 mb-4">Documents Required</h2>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
               <li>Birth Certificate</li>
               <li>Previous School Report Card</li>
               <li>Transfer Certificate (if applicable)</li>
               <li>Passport size photographs (4 copies)</li>
-              <li>Aadhar Card copy</li>
+              <li>National ID / Aadhar Card copy</li>
             </ul>
+
+            <div className="mt-8 p-4 bg-school-light rounded-xl border border-yellow-200">
+              <p className="text-school-primary font-semibold">Admissions Helpline</p>
+              <p className="text-gray-600 mt-1">Call us at <strong>+91 97030 33531</strong> or email <strong>genesissrikakulam@gmail.com</strong></p>
+            </div>
           </div>
 
+          {/* Inquiry Form */}
           <div className="card">
-            <h2 className="text-2xl font-semibold mb-4">Inquiry Form</h2>
+            <h2 className="text-2xl font-semibold text-school-primary mb-4">Inquiry Form</h2>
             {submitted ? (
-              <div className="bg-green-50 text-green-700 p-4 rounded-lg">
-                Thank you for your inquiry! We will contact you soon.
+              <div className="bg-green-50 text-green-700 p-5 rounded-lg text-center">
+                <p className="font-semibold">Thank you for your inquiry!</p>
+                <p className="text-sm mt-1">Our admissions team will contact you within 24 hours.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input className="input-field" placeholder="Student Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-                <input className="input-field" placeholder="Parent Phone" type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} required />
-                <input className="input-field" placeholder="Email" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-                <select className="input-field" value={form.class} onChange={e => setForm({...form, class: e.target.value})} required>
-                  <option value="">Select Class</option>
-                  {['Nursery', 'LKG', 'UKG', ...Array.from({length:12}, (_,i) => `Class ${i+1}`)].map(c => (
+                <input
+                  className="input-field"
+                  placeholder="Student Name"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+                <input
+                  className="input-field"
+                  placeholder="Parent / Guardian Phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => setForm({ ...form, phone: e.target.value })}
+                  required
+                />
+                <input
+                  className="input-field"
+                  placeholder="Email Address"
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                />
+                <select
+                  className="input-field"
+                  value={form.class}
+                  onChange={e => setForm({ ...form, class: e.target.value })}
+                  required
+                >
+                  <option value="">Select Class Applying For</option>
+                  {['Nursery', 'LKG', 'UKG', ...Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)].map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-                <textarea className="input-field" placeholder="Message (optional)" rows={3} value={form.message} onChange={e => setForm({...form, message: e.target.value})} />
-                <button type="submit" className="btn-primary w-full">Submit Inquiry</button>
+                <textarea
+                  className="input-field"
+                  placeholder="Any additional message (optional)"
+                  rows={3}
+                  value={form.message}
+                  onChange={e => setForm({ ...form, message: e.target.value })}
+                />
+                <button type="submit" className="btn-primary w-full py-3 text-base">
+                  Submit Inquiry
+                </button>
               </form>
             )}
           </div>

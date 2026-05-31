@@ -1,8 +1,16 @@
 import Layout from '../components/Layout';
 import { useState } from 'react';
+import { LocationIcon, PhoneIcon, MailIcon, TimeIcon } from '../components/Icons';
 
 export default function Contact() {
   const [sent, setSent] = useState(false);
+
+  const contactItems = [
+    { icon: LocationIcon, label: 'Address', value: 'Visakha A colony, Near Arch, Opposite SBI, Peddapadu Road, Srikakulam, AP 532001' },
+    { icon: PhoneIcon, label: 'Phone', value: '+91 97030 33531 / +91 83283 73123' },
+    { icon: MailIcon, label: 'Email', value: 'genesissrikakulam@gmail.com' },
+    { icon: TimeIcon, label: 'Office Hours', value: 'Mon - Fri: 8:00 AM - 3:00 PM' },
+  ];
 
   return (
     <Layout>
@@ -12,14 +20,9 @@ export default function Contact() {
 
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            {[
-              { icon: '📍', label: 'Address', value: '123 School Street, Education City, State - 123456' },
-              { icon: '📞', label: 'Phone', value: '+91 98765 43210' },
-              { icon: '✉️', label: 'Email', value: 'info@schoolname.edu' },
-              { icon: '🕐', label: 'Office Hours', value: 'Mon - Fri: 8:00 AM - 3:00 PM' },
-            ].map((item, i) => (
+            {contactItems.map((item, i) => (
               <div key={i} className="flex items-start">
-                <span className="text-2xl mr-4">{item.icon}</span>
+                <span className="mr-4"><item.icon /></span>
                 <div>
                   <p className="font-semibold">{item.label}</p>
                   <p className="text-gray-600">{item.value}</p>

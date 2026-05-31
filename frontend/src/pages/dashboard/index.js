@@ -2,17 +2,17 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PeopleIcon, CurrencyIcon, ClockIcon, CheckCircleIcon } from '../../components/Icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-const COLORS = ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd'];
 
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
-function StatCard({ icon, label, value, sub }) {
+function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
     <div className="stat-card">
-      <div className="text-4xl">{icon}</div>
+      <div className={color || 'text-school-primary'}><Icon /></div>
       <div>
         <p className="text-2xl font-bold">{value}</p>
         <p className="text-gray-500 text-sm">{label}</p>
@@ -42,10 +42,10 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold">Dashboard Overview</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon="👨‍🎓" label="Total Students" value={stats?.totalStudents || 0} />
-            <StatCard icon="💰" label="Fees Collected" value={`₹${(stats?.feesCollected || 0).toLocaleString()}`} />
-            <StatCard icon="⏳" label="Pending Fees" value={`₹${(stats?.pendingFees || 0).toLocaleString()}`} />
-            <StatCard icon="📊" label="Attendance Today" value={`${stats?.attendancePercentage || 0}%`} sub={`${stats?.todayPresent || 0}/${stats?.todayTotal || 0} present`} />
+            <StatCard icon={PeopleIcon} label="Total Students" value={stats?.totalStudents || 0} color="text-school-primary" />
+            <StatCard icon={CurrencyIcon} label="Fees Collected" value={`₹${(stats?.feesCollected || 0).toLocaleString()}`} color="text-green-600" />
+            <StatCard icon={ClockIcon} label="Pending Fees" value={`₹${(stats?.pendingFees || 0).toLocaleString()}`} color="text-red-500" />
+            <StatCard icon={CheckCircleIcon} label="Attendance Today" value={`${stats?.attendancePercentage || 0}%`} sub={`${stats?.todayPresent || 0}/${stats?.todayTotal || 0} present`} color="text-blue-600" />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">

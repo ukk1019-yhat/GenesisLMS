@@ -8,11 +8,11 @@ module.exports = {
     extend: {
       colors: {
         school: {
-          primary: '#1e40af',
-          secondary: '#1e3a8a',
-          accent: '#3b82f6',
-          light: '#dbeafe',
-          dark: '#172554',
+          primary: '#1a3461',   // Genesis navy blue
+          secondary: '#142850', // deeper navy
+          accent: '#c9a84c',    // Genesis gold
+          light: '#f0e9d6',     // soft gold tint
+          dark: '#0f1e3d',      // darkest navy
         },
       },
     },
