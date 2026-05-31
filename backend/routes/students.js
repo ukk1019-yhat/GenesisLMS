@@ -1,8 +1,27 @@
 const express = require('express');
 const db = require('../config/db');
 const { authenticate, authorize } = require('../middleware/auth');
+const XLSX = require('xlsx');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
+
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const excelUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-import.xlsx`),
+  }),
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.xlsx', '.xls'].includes(ext)) cb(null, true);
+    else cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
+  },
+});
 
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -231,6 +250,60 @@ router.post('/bulk-import', authenticate, authorize('admin'), async (req, res) =
     console.error('Bulk import error:', err);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) => {
+  excelUpload.single('file')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+    try {
+      const wb = XLSX.readFile(req.file.path);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+
+      if (!rows.length) return res.status(400).json({ error: 'Excel file is empty' });
+
+      let imported = 0, errors = [];
+      for (const row of rows) {
+        try {
+          await db.collection('students').add({
+            photo_url: '',
+            name: row.Name || row.name || '',
+            roll_number: String(row.RollNumber || row.roll_number || row['Roll No'] || ''),
+            class: String(row.Class || row.class || ''),
+            section: String(row.Section || row.section || ''),
+            parent_name: String(row.ParentName || row.parent_name || row['Parent Name'] || ''),
+            parent_phone: String(row.ParentPhone || row.parent_phone || row['Parent Phone'] || ''),
+            parent_email: String(row.ParentEmail || row.parent_email || row['Parent Email'] || ''),
+            address: String(row.Address || row.address || ''),
+            blood_group: String(row.BloodGroup || row.blood_group || row['Blood Group'] || ''),
+            transport_route: String(row.TransportRoute || row.transport_route || ''),
+            pen_number: String(row.PENNumber || row.pen_number || row['PEN Number'] || ''),
+            student_type: String(row.StudentType || row.student_type || row['Student Type'] || 'dayscholar'),
+            admission_date: new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          imported++;
+        } catch (e) {
+          errors.push({ row: row.Name || row.name || 'unknown', error: e.message });
+        }
+      }
+
+      await db.collection('audit_logs').add({
+        user_id: req.user.id, action: 'BULK_IMPORT_EXCEL',
+        entity_type: 'student',
+        details: `Imported ${imported} students from Excel, ${errors.length} errors`,
+        created_at: new Date().toISOString(),
+      });
+
+      fs.unlink(req.file.path, () => {});
+      res.json({ imported, errors });
+    } catch (e) {
+      res.status(500).json({ error: 'Error processing Excel file' });
+    }
+  });
 });
 
 module.exports = router;

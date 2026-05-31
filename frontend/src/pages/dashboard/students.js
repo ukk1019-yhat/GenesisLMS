@@ -8,6 +8,24 @@ import { UploadIcon, SearchIcon, CheckIcon, AlertIcon } from '../../components/I
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
+async function uploadPhoto(file) {
+  const formData = new FormData();
+  formData.append('photo', file);
+  const res = await axios.post(`${API}/upload/photo`, formData, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.url;
+}
+
+async function uploadExcel(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await axios.post(`${API}/students/bulk-import-excel`, formData, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
 export default function Students() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -19,6 +37,7 @@ export default function Students() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '', pen_number: '', student_type: 'dayscholar' });
   const [showBulk, setShowBulk] = useState(false);
+  const [bulkTab, setBulkTab] = useState('json');
   const [bulkData, setBulkData] = useState('');
   const [bulkResult, setBulkResult] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -151,25 +170,61 @@ export default function Students() {
           {showBulk && isAdmin && (
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">Bulk Import Students</h3>
-              <p className="text-sm text-gray-500 mb-3">
-                Paste a JSON array of student objects. Required fields: <code>name</code>, <code>roll_number</code>, <code>class</code>.
-              </p>
-              <div className="bg-gray-50 p-3 rounded-lg mb-3 text-xs font-mono text-gray-600">
-                [{'{'}"name":"John Doe","roll_number":"2401","class":"Class 1","section":"A","parent_name":"Jane Doe","parent_phone":"9876543210","parent_email":"jane@example.com","pen_number":"PEN123","student_type":"dayscholar"{'}'}]
+              <div className="flex space-x-2 mb-4">
+                <button onClick={() => setBulkTab('json')} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${bulkTab === 'json' ? 'bg-school-primary text-white' : 'bg-gray-100 text-gray-600'}`}>JSON</button>
+                <button onClick={() => setBulkTab('excel')} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${bulkTab === 'excel' ? 'bg-school-primary text-white' : 'bg-gray-100 text-gray-600'}`}>Excel</button>
               </div>
-              <textarea
-                className="input-field font-mono text-sm"
-                rows={8}
-                placeholder='[{ "name": "...", "roll_number": "...", "class": "...", "section": "...", "parent_name": "...", "parent_phone": "...", "pen_number": "...", "student_type": "dayscholar" }]'
-                value={bulkData}
-                onChange={e => setBulkData(e.target.value)}
-              />
+
+              {bulkTab === 'json' && (
+                <>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Paste a JSON array of student objects. Required fields: <code>name</code>, <code>roll_number</code>, <code>class</code>.
+                  </p>
+                  <div className="bg-gray-50 p-3 rounded-lg mb-3 text-xs font-mono text-gray-600">
+                    [{'{'}"name":"John Doe","roll_number":"2401","class":"Class 1","section":"A","parent_name":"Jane Doe","parent_phone":"9876543210","parent_email":"jane@example.com","pen_number":"PEN123","student_type":"dayscholar"{'}'}]
+                  </div>
+                  <textarea
+                    className="input-field font-mono text-sm"
+                    rows={8}
+                    placeholder='[{ "name": "...", "roll_number": "...", "class": "...", "section": "...", "parent_name": "...", "parent_phone": "...", "pen_number": "...", "student_type": "dayscholar" }]'
+                    value={bulkData}
+                    onChange={e => setBulkData(e.target.value)}
+                  />
+                  <div className="flex space-x-3 mt-3">
+                    <button onClick={handleBulkImport} disabled={bulkLoading} className="btn-primary">
+                      {bulkLoading ? 'Importing...' : 'Import Students'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {bulkTab === 'excel' && (
+                <>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Upload an Excel file (.xlsx). Columns: <code>Name</code>, <code>Roll Number</code>, <code>Class</code>, <code>Section</code>, <code>Parent Name</code>, <code>Parent Phone</code>, <code>PEN Number</code>, <code>Student Type</code>.
+                  </p>
+                  <input type="file" accept=".xlsx,.xls" className="input-field" onChange={async e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setBulkLoading(true);
+                    setBulkResult(null);
+                    try {
+                      const res = await uploadExcel(file);
+                      setBulkResult(res);
+                      loadStudents();
+                      loadAllClasses();
+                    } catch (err) {
+                      alert(err.response?.data?.error || 'Error importing Excel');
+                    } finally { setBulkLoading(false); }
+                  }} />
+                  {bulkLoading && <p className="text-sm text-gray-500 mt-2">Uploading and importing...</p>}
+                </>
+              )}
+
               <div className="flex space-x-3 mt-3">
-                <button onClick={handleBulkImport} disabled={bulkLoading} className="btn-primary">
-                  {bulkLoading ? 'Importing...' : 'Import Students'}
-                </button>
                 <button onClick={() => { setShowBulk(false); setBulkResult(null); setBulkData(''); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
               </div>
+
               {bulkResult && (
                 <div className={`mt-3 p-3 rounded-lg text-sm ${bulkResult.errors?.length ? 'bg-yellow-50 text-yellow-800' : 'bg-green-50 text-green-700'}`}>
                   <p className="flex items-center space-x-1"><CheckIcon /><span>{bulkResult.imported} students imported successfully.</span></p>
@@ -177,7 +232,7 @@ export default function Students() {
                     <div className="mt-2">
                       <p className="font-medium flex items-center space-x-1"><AlertIcon /><span>{bulkResult.errors.length} errors:</span></p>
                       <ul className="list-disc list-inside text-xs mt-1">
-                        {bulkResult.errors.map((e, i) => <li key={i}>{e.student}: {e.error}</li>)}
+                        {bulkResult.errors.map((e, i) => <li key={i}>{e.row}: {e.error}</li>)}
                       </ul>
                     </div>
                   )}
@@ -190,7 +245,18 @@ export default function Students() {
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit Student' : 'Add New Student'}</h3>
               <form onSubmit={handleSubmit} className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <input className="input-field" placeholder="Photo URL" value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})} />
+                <div className="md:col-span-2 lg:col-span-3">
+                  <label className="block text-sm text-gray-600 mb-1">Photo (JPG format)</label>
+                  <input type="file" accept=".jpg,.jpeg,.png" className="input-field" onChange={async e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                      const url = await uploadPhoto(file);
+                      setForm({...form, photo_url: url});
+                    } catch { alert('Photo upload failed'); }
+                  }} />
+                  {form.photo_url && <img src={form.photo_url} alt="preview" className="mt-2 h-20 w-20 rounded-lg object-cover" />}
+                </div>
                 <input className="input-field" placeholder="Full Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                 <input className="input-field" placeholder="Roll Number *" value={form.roll_number} onChange={e => setForm({...form, roll_number: e.target.value})} required />
                 <input className="input-field" placeholder="PEN Number" value={form.pen_number} onChange={e => setForm({...form, pen_number: e.target.value})} />
