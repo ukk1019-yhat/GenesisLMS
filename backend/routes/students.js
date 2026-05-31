@@ -2,26 +2,8 @@ const express = require('express');
 const db = require('../config/db');
 const { authenticate, authorize } = require('../middleware/auth');
 const XLSX = require('xlsx');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
 const router = express.Router();
-
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const excelUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => cb(null, `${Date.now()}-import.xlsx`),
-  }),
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (['.xlsx', '.xls'].includes(ext)) cb(null, true);
-    else cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
-  },
-});
 
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -253,12 +235,40 @@ router.post('/bulk-import', authenticate, authorize('admin'), async (req, res) =
 });
 
 router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) => {
+  const multer = require('multer');
+  const path = require('path');
+  const fs = require('fs');
+
+  const useDisk = !process.env.VERCEL;
+  const storage = useDisk
+    ? multer.diskStorage({
+        destination: path.join(__dirname, '..', 'uploads'),
+        filename: (req, file, cb) => cb(null, `${Date.now()}-import.xlsx`),
+      })
+    : multer.memoryStorage();
+
+  const excelUpload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (['.xlsx', '.xls'].includes(ext)) cb(null, true);
+      else cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
+    },
+  });
+
   excelUpload.single('file')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
     try {
-      const wb = XLSX.readFile(req.file.path);
+      let wb;
+      if (useDisk) {
+        wb = XLSX.readFile(req.file.path);
+        fs.unlink(req.file.path, () => {});
+      } else {
+        wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      }
+
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws);
 
@@ -298,7 +308,6 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
         created_at: new Date().toISOString(),
       });
 
-      fs.unlink(req.file.path, () => {});
       res.json({ imported, errors });
     } catch (e) {
       res.status(500).json({ error: 'Error processing Excel file' });

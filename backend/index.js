@@ -27,7 +27,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/uploads', express.static('uploads'));
+if (process.env.VERCEL !== '1') {
+  app.use('/uploads', express.static('uploads'));
+}
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'School Management API is running' });
