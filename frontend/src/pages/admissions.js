@@ -1,13 +1,27 @@
 import Layout from '../components/Layout';
 import { useState } from 'react';
+import axios from 'axios';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function Admissions() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', class: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+    try {
+      await axios.post(`${API}/inquiries`, form);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,48 +82,49 @@ export default function Admissions() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>}
                 <input
                   className="input-field"
                   placeholder="Student Name"
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({...form, name: e.target.value})}
                   required
                 />
                 <input
                   className="input-field"
-                  placeholder="Parent / Guardian Phone"
+                  placeholder="Parent Phone"
                   type="tel"
                   value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
+                  onChange={e => setForm({...form, phone: e.target.value})}
                   required
                 />
                 <input
                   className="input-field"
-                  placeholder="Email Address"
+                  placeholder="Email"
                   type="email"
                   value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  onChange={e => setForm({...form, email: e.target.value})}
                 />
                 <select
                   className="input-field"
                   value={form.class}
-                  onChange={e => setForm({ ...form, class: e.target.value })}
+                  onChange={e => setForm({...form, class: e.target.value})}
                   required
                 >
-                  <option value="">Select Class Applying For</option>
-                  {['Nursery', 'LKG', 'UKG', ...Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`)].map(c => (
+                  <option value="">Select Class</option>
+                  {['Day Care', 'Nursery', 'LKG', 'UKG', ...Array.from({length:7}, (_,i) => `Class ${i+1}`)].map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
                 <textarea
                   className="input-field"
-                  placeholder="Any additional message (optional)"
+                  placeholder="Message (optional)"
                   rows={3}
                   value={form.message}
-                  onChange={e => setForm({ ...form, message: e.target.value })}
+                  onChange={e => setForm({...form, message: e.target.value})}
                 />
-                <button type="submit" className="btn-primary w-full py-3 text-base">
-                  Submit Inquiry
+                <button type="submit" className="btn-primary w-full" disabled={loading}>
+                  {loading ? 'Submitting...' : 'Submit Inquiry'}
                 </button>
               </form>
             )}

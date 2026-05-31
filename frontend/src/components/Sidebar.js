@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-import { DashboardIcon, StudentsIcon, FeesIcon, MarksIcon, AttendanceIcon, ReportsIcon, LogoutIcon } from './Icons';
+import { DashboardIcon, StudentsIcon, FeesIcon, MarksIcon, AttendanceIcon, ReportsIcon, LogoutIcon, MailIcon } from './Icons';
 
 const navItems = {
   admin: [
@@ -11,6 +11,7 @@ const navItems = {
     { href: '/dashboard/marks', label: 'Marks', icon: MarksIcon },
     { href: '/dashboard/attendance', label: 'Attendance', icon: AttendanceIcon },
     { href: '/dashboard/reports', label: 'Reports', icon: ReportsIcon },
+    { href: '/dashboard/inquiries', label: 'Inquiries', icon: MailIcon },
   ],
   teacher: [
     { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },

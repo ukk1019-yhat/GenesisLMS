@@ -9,6 +9,7 @@ const feeRoutes = require('./routes/fees');
 const markRoutes = require('./routes/marks');
 const attendanceRoutes = require('./routes/attendance');
 const dashboardRoutes = require('./routes/dashboard');
+const inquiryRoutes = require('./routes/inquiries');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,6 +24,7 @@ app.use('/api/fees', feeRoutes);
 app.use('/api/marks', markRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'School Management API is running' });

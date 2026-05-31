@@ -1,11 +1,11 @@
 import Layout from '../components/Layout';
-import { BookIcon, TrophyIcon, FlaskIcon } from '../components/Icons';
+import { TargetIcon, GlobeIcon, HeartIcon, LightbulbIcon } from '../components/Icons';
 
 const iconMap = {
-  mission: TrophyIcon,
-  vision: FlaskIcon,
-  values: BookIcon,
-  approach: BookIcon,
+  mission: TargetIcon,
+  vision: GlobeIcon,
+  values: HeartIcon,
+  approach: LightbulbIcon,
 };
 
 const aboutItems = [
