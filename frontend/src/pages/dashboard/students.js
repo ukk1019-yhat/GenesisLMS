@@ -17,7 +17,7 @@ export default function Students() {
   const [classes, setClasses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '' });
+  const [form, setForm] = useState({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '', pen_number: '', student_type: 'dayscholar' });
   const [showBulk, setShowBulk] = useState(false);
   const [bulkData, setBulkData] = useState('');
   const [bulkResult, setBulkResult] = useState(null);
@@ -45,7 +45,7 @@ export default function Students() {
   useEffect(() => { loadAllClasses(); }, []);
 
   const resetForm = () => {
-    setForm({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '' });
+    setForm({ name: '', roll_number: '', class: '', section: '', parent_name: '', parent_phone: '', parent_email: '', address: '', blood_group: '', transport_route: '', photo_url: '', pen_number: '', student_type: 'dayscholar' });
     setEditing(null);
     setShowForm(false);
   };
@@ -155,12 +155,12 @@ export default function Students() {
                 Paste a JSON array of student objects. Required fields: <code>name</code>, <code>roll_number</code>, <code>class</code>.
               </p>
               <div className="bg-gray-50 p-3 rounded-lg mb-3 text-xs font-mono text-gray-600">
-                [{'{'}"name":"John Doe","roll_number":"2401","class":"Class 1","section":"A","parent_name":"Jane Doe","parent_phone":"9876543210","parent_email":"jane@example.com"{'}'}]
+                [{'{'}"name":"John Doe","roll_number":"2401","class":"Class 1","section":"A","parent_name":"Jane Doe","parent_phone":"9876543210","parent_email":"jane@example.com","pen_number":"PEN123","student_type":"dayscholar"{'}'}]
               </div>
               <textarea
                 className="input-field font-mono text-sm"
                 rows={8}
-                placeholder='[{ "name": "...", "roll_number": "...", "class": "...", "section": "...", "parent_name": "...", "parent_phone": "..." }]'
+                placeholder='[{ "name": "...", "roll_number": "...", "class": "...", "section": "...", "parent_name": "...", "parent_phone": "...", "pen_number": "...", "student_type": "dayscholar" }]'
                 value={bulkData}
                 onChange={e => setBulkData(e.target.value)}
               />
@@ -193,8 +193,13 @@ export default function Students() {
                 <input className="input-field" placeholder="Photo URL" value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})} />
                 <input className="input-field" placeholder="Full Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                 <input className="input-field" placeholder="Roll Number *" value={form.roll_number} onChange={e => setForm({...form, roll_number: e.target.value})} required />
+                <input className="input-field" placeholder="PEN Number" value={form.pen_number} onChange={e => setForm({...form, pen_number: e.target.value})} />
                 <input className="input-field" placeholder="Class *" value={form.class} onChange={e => setForm({...form, class: e.target.value})} required />
                 <input className="input-field" placeholder="Section" value={form.section} onChange={e => setForm({...form, section: e.target.value})} />
+                <select className="input-field" value={form.student_type} onChange={e => setForm({...form, student_type: e.target.value})}>
+                  <option value="dayscholar">Day Scholar</option>
+                  <option value="hosteler">Hosteler</option>
+                </select>
                 <input className="input-field" placeholder="Parent Name" value={form.parent_name} onChange={e => setForm({...form, parent_name: e.target.value})} />
                 <input className="input-field" placeholder="Parent Phone" value={form.parent_phone} onChange={e => setForm({...form, parent_phone: e.target.value})} />
                 <input className="input-field" placeholder="Parent Email" type="email" value={form.parent_email} onChange={e => setForm({...form, parent_email: e.target.value})} />
@@ -216,7 +221,9 @@ export default function Students() {
                   <th className="text-left p-3 font-medium">Photo</th>
                   <th className="text-left p-3 font-medium">Name</th>
                   <th className="text-left p-3 font-medium">Roll No</th>
+                  <th className="text-left p-3 font-medium">PEN No</th>
                   <th className="text-left p-3 font-medium">Class</th>
+                  <th className="text-left p-3 font-medium">Type</th>
                   <th className="text-left p-3 font-medium">Parent</th>
                   <th className="text-left p-3 font-medium">Phone</th>
                   <th className="text-left p-3 font-medium">Blood Group</th>
@@ -231,7 +238,13 @@ export default function Students() {
                     </td>
                     <td className="p-3 font-medium">{s.name}</td>
                     <td className="p-3">{s.roll_number}</td>
+                    <td className="p-3 text-xs">{s.pen_number || '-'}</td>
                     <td className="p-3">{s.class} {s.section}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.student_type === 'hosteler' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {s.student_type === 'hosteler' ? 'Hosteler' : 'Day Scholar'}
+                      </span>
+                    </td>
                     <td className="p-3">{s.parent_name || '-'}</td>
                     <td className="p-3">{s.parent_phone || '-'}</td>
                     <td className="p-3">{s.blood_group || '-'}</td>
@@ -244,7 +257,7 @@ export default function Students() {
                   </tr>
                 ))}
                 {students.length === 0 && (
-                  <tr><td colSpan={isAdmin ? 8 : 7} className="p-6 text-center text-gray-400">No students found</td></tr>
+                  <tr><td colSpan={isAdmin ? 10 : 9} className="p-6 text-center text-gray-400">No students found</td></tr>
                 )}
               </tbody>
             </table>

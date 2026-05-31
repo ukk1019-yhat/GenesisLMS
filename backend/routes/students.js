@@ -22,6 +22,7 @@ router.get('/', authenticate, async (req, res) => {
       students = students.filter(st =>
         st.name?.toLowerCase().includes(s) ||
         st.roll_number?.toLowerCase().includes(s) ||
+        st.pen_number?.toLowerCase().includes(s) ||
         st.parent_phone?.includes(s)
       );
     }
@@ -54,7 +55,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const {
       photo_url, name, roll_number, class: cls, section,
       parent_name, parent_phone, parent_email, address,
-      blood_group, transport_route,
+      blood_group, transport_route, pen_number, student_type,
     } = req.body;
 
     if (!name || !roll_number || !cls) {
@@ -81,6 +82,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       address: address || '',
       blood_group: blood_group || '',
       transport_route: transport_route || '',
+      pen_number: pen_number || '',
+      student_type: student_type || 'dayscholar',
       admission_date: new Date().toISOString().split('T')[0],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -114,7 +117,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     const {
       photo_url, name, roll_number, class: cls, section,
       parent_name, parent_phone, parent_email, address,
-      blood_group, transport_route,
+      blood_group, transport_route, pen_number, student_type,
     } = req.body;
 
     const updates = {};
@@ -129,6 +132,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     if (address !== undefined) updates.address = address;
     if (blood_group !== undefined) updates.blood_group = blood_group;
     if (transport_route !== undefined) updates.transport_route = transport_route;
+    if (pen_number !== undefined) updates.pen_number = pen_number;
+    if (student_type !== undefined) updates.student_type = student_type;
     updates.updated_at = new Date().toISOString();
 
     await docRef.update(updates);
@@ -201,6 +206,8 @@ router.post('/bulk-import', authenticate, authorize('admin'), async (req, res) =
           address: s.address || '',
           blood_group: '',
           transport_route: '',
+          pen_number: s.pen_number || '',
+          student_type: s.student_type || 'dayscholar',
           admission_date: new Date().toISOString().split('T')[0],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
