@@ -32,8 +32,8 @@ export default function Admissions() {
           <p className="text-school-accent font-semibold uppercase tracking-widest text-sm mb-2">Join Us</p>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Admissions Open</h1>
           <p className="text-gray-300 text-lg">
-            Enrol at Genesis International School for the academic year 2025–26.
-            Admissions are open for Nursery to Class XII.
+            Enrol at Genesis International Montessori and STEM School for the academic year 2026–27.
+            Admissions are open for Play Group to Class VII.
           </p>
         </div>
       </section>
@@ -112,7 +112,7 @@ export default function Admissions() {
                   required
                 >
                   <option value="">Select Class</option>
-                  {['Day Care', 'Nursery', 'LKG', 'UKG', ...Array.from({length:7}, (_,i) => `Class ${i+1}`)].map(c => (
+                  {['Play Group', 'Nursery', 'LKG', 'UKG', ...Array.from({length:7}, (_,i) => `Class ${i+1}`)].map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>

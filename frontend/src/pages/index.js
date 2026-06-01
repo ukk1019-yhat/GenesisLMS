@@ -68,7 +68,7 @@ export default function Home() {
       <section className="py-16 max-w-7xl mx-auto px-4 text-center">
         <h2 className="text-3xl font-bold mb-4">Ready to Join the Genesis Family?</h2>
         <p className="text-gray-600 mb-8 max-w-xl mx-auto">
-          Admissions are open for the upcoming academic year. Take the first step towards a brighter future.
+          Admissions are open for the academic year 2026–27. Enrol your child from Play Group to Class VII.
         </p>
         <Link href="/admissions" className="bg-school-primary text-white px-10 py-3 rounded-lg font-semibold hover:bg-school-secondary transition">
           Start Your Application

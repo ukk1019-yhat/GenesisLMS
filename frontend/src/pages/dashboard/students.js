@@ -260,7 +260,12 @@ export default function Students() {
                 <input className="input-field" placeholder="Full Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
                 <input className="input-field" placeholder="Roll Number *" value={form.roll_number} onChange={e => setForm({...form, roll_number: e.target.value})} required />
                 <input className="input-field" placeholder="PEN Number" value={form.pen_number} onChange={e => setForm({...form, pen_number: e.target.value})} />
-                <input className="input-field" placeholder="Class *" value={form.class} onChange={e => setForm({...form, class: e.target.value})} required />
+                <select className="input-field" value={form.class} onChange={e => setForm({...form, class: e.target.value})} required>
+                  <option value="">Select Class</option>
+                  {['Play Group', 'Nursery', 'LKG', 'UKG', ...Array.from({length:7}, (_,i) => `Class ${i+1}`)].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
                 <input className="input-field" placeholder="Section" value={form.section} onChange={e => setForm({...form, section: e.target.value})} />
                 <select className="input-field" value={form.student_type} onChange={e => setForm({...form, student_type: e.target.value})}>
                   <option value="dayscholar">Day Scholar</option>
