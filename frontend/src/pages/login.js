@@ -76,11 +76,11 @@ export default function Login() {
           <p>Admin: admin@school.com / admin123</p>
           <p>Accountant: accountant@school.com / admin123</p>
           <p className="mt-2 font-medium text-school-primary">Teachers:</p>
-          <p>Vindhiya: vindhiyakota@gmail.com / vindhiya#1019 (Telugu)</p>
-          <p>Sailaja: sailuamma30@gmail.com / sailu#1019 (Hindi)</p>
-          <p>Kiran: kiran.paridala@gmail.com / kiran#1019 (Mathematics)</p>
-          <p>Swetha: sanapalaswethauma@gmail.com / sana#1019 (English)</p>
-          <p>Susan: sweetynsp@gmail.com / sweety#1019 (Science)</p>
+          <p>Vindhiya: vindhiyakota@gmail.com / vindhiya#1019 (Nursery)</p>
+          <p>Sailaja: sailuamma30@gmail.com / sailu#1019 (Nursery)</p>
+          <p>Kiran: kiran.paridala@gmail.com / kiran#1019 (UKG)</p>
+          <p>Swetha: sanapalaswethauma@gmail.com / sana#1019 (Playgroup)</p>
+          <p>Susan: sweetynsp@gmail.com / sweety#1019 (Playgroup)</p>
         </div>
       </div>
     </div>
