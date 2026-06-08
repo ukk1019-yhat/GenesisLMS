@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { UploadIcon, SearchIcon, CheckIcon, AlertIcon } from '../../components/Icons';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
 async function uploadPhoto(file) {
