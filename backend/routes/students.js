@@ -275,7 +275,7 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
       }
 
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws);
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
       // Key normalization helper (e.g. "Roll no" -> "rollno", "Father name" -> "fathername")
       const normalizeKey = (key) => key.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -288,7 +288,11 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
             normRow[normalizeKey(k)] = row[k];
           }
 
-          const name = String(normRow.name || '').trim();
+          const name = String(
+            normRow.studentname !== undefined ? normRow.studentname :
+            (normRow.fullname !== undefined ? normRow.fullname :
+            (normRow.name || ''))
+          ).trim();
           const roll_number = String(
             normRow.rollno !== undefined ? normRow.rollno :
             (normRow.rollnumber !== undefined ? normRow.rollnumber :
@@ -324,7 +328,7 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
             blood_group: String(normRow.bloodgroup || normRow.bg || '').trim(),
             transport_route: String(normRow.transportroute || normRow.route || '').trim(),
             pen_number: String(normRow.penno || normRow.pen || normRow.pennumber || '').trim(),
-            student_type: String(normRow.studenttype || normRow.type || 'dayscholar').trim().toLowerCase(),
+            student_type: String(normRow.studenttype || normRow.type || 'dayscholar').trim().toLowerCase().replace(/[^a-z]/g, ''),
             admission_date: normRow.admissiondate || new Date().toISOString().split('T')[0],
             updated_at: new Date().toISOString(),
           };
