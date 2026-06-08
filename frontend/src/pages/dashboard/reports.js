@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { PeopleIcon, CurrencyIcon, ClockIcon, CheckCircleIcon } from '../../components/Icons';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? '/api' : 'http://127.0.0.1:5000/api');
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 const COLORS = ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
 

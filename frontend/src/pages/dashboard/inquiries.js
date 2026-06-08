@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+const API = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? '/api' : 'http://127.0.0.1:5000/api');
 const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
 export default function Inquiries() {
