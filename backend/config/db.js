@@ -11,7 +11,8 @@ const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.exis
 
 if (hasServiceAccount) {
   try {
-    const admin = require('firebase-admin');
+    // Use eval to prevent Vercel's ncc bundler from hoisting the require
+    const admin = eval('require')('firebase-admin');
     let serviceAccount;
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
