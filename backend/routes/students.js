@@ -90,14 +90,14 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       updated_at: new Date().toISOString(),
     });
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'CREATE_STUDENT',
       entity_type: 'student',
       entity_id: docRef.id,
       details: `Created student ${name} (${roll_number})`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     const doc = await docRef.get();
     res.status(201).json({ id: doc.id, ...doc.data() });
@@ -139,14 +139,14 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
 
     await docRef.update(updates);
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'UPDATE_STUDENT',
       entity_type: 'student',
       entity_id: req.params.id,
       details: `Updated student ${updates.name || doc.data().name}`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     const updated = await docRef.get();
     res.json({ id: updated.id, ...updated.data() });
@@ -167,14 +167,14 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     const data = doc.data();
     await docRef.delete();
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'DELETE_STUDENT',
       entity_type: 'student',
       entity_id: req.params.id,
       details: `Deleted student ${data.name} (${data.roll_number})`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     res.json({ message: 'Student deleted successfully' });
   } catch (err) {
@@ -219,13 +219,13 @@ router.post('/bulk-import', authenticate, authorize('admin'), async (req, res) =
       }
     }
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'BULK_IMPORT_STUDENTS',
       entity_type: 'student',
       details: `Imported ${imported} students, ${errors.length} errors`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     res.json({ imported, errors });
   } catch (err) {
@@ -353,13 +353,13 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
         }
       }
 
-      await db.collection('audit_logs').add({
+      db.collection('audit_logs').add({
         user_id: req.user.id,
         action: 'BULK_IMPORT_EXCEL',
         entity_type: 'student',
         details: `Imported ${imported} students from Excel, ${errors.length} errors`,
         created_at: new Date().toISOString(),
-      });
+      }).catch(() => {});
 
       res.json({ imported, errors });
     } catch (e) {

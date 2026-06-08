@@ -81,14 +81,14 @@ router.post('/', authenticate, authorize('admin', 'accountant'), async (req, res
       created_at: new Date().toISOString(),
     });
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'CREATE_FEE',
       entity_type: 'fee',
       entity_id: docRef.id,
       details: `Created fee record: ${status}, amount ${paid}/${total}`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     const doc = await docRef.get();
     res.status(201).json({ id: doc.id, ...doc.data() });
@@ -120,14 +120,14 @@ router.put('/:id/pay', authenticate, authorize('admin', 'accountant'), async (re
       receipt_number: `RCP-${Date.now()}`,
     });
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'PAYMENT',
       entity_type: 'fee',
       entity_id: req.params.id,
       details: `Payment of ${amount} received`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     const updated = await docRef.get();
     res.json({ id: updated.id, ...updated.data() });

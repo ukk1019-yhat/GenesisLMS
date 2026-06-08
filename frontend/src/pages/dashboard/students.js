@@ -12,7 +12,7 @@ async function uploadPhoto(file) {
   const formData = new FormData();
   formData.append('photo', file);
   const res = await axios.post(`${API}/upload/photo`, formData, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   });
   return res.data.url;
 }
@@ -21,7 +21,7 @@ async function uploadExcel(file) {
   const formData = new FormData();
   formData.append('file', file);
   const res = await axios.post(`${API}/students/bulk-import-excel`, formData, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   });
   return res.data;
 }

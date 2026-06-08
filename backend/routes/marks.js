@@ -74,14 +74,14 @@ router.post('/', authenticate, authorize('admin', 'teacher'), async (req, res) =
       updated_at: new Date().toISOString(),
     });
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'CREATE_MARK',
       entity_type: 'mark',
       entity_id: docRef.id,
       details: `Added marks: ${subject} ${exam_name} = ${marks_obtained}/${total_marks} (${grade})`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     const doc = await docRef.get();
     res.status(201).json({ id: doc.id, ...doc.data() });

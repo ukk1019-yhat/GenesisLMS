@@ -80,13 +80,13 @@ router.post('/', authenticate, authorize('admin', 'teacher'), async (req, res) =
       }
     }
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: req.user.id,
       action: 'MARK_ATTENDANCE',
       entity_type: 'attendance',
       details: `Marked attendance for ${inserted} students`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     res.json({ inserted, errors });
   } catch (err) {
