@@ -4,15 +4,14 @@ require('dotenv').config();
 
 let db;
 
-// Try to initialize Firebase; fall back to local JSON on any failure
-let firebaseOk = false;
-try {
-  const admin = require('firebase-admin');
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
-  const resolvedServiceAccountPath = path.resolve(serviceAccountPath);
-  const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.existsSync(resolvedServiceAccountPath);
+// Check if Firebase credentials are available before attempting to load firebase-admin
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
+const resolvedServiceAccountPath = path.resolve(serviceAccountPath);
+const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.existsSync(resolvedServiceAccountPath);
 
-  if (hasServiceAccount) {
+if (hasServiceAccount) {
+  try {
+    const admin = require('firebase-admin');
     let serviceAccount;
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -29,13 +28,12 @@ try {
 
     db = admin.firestore();
     console.log('Firebase Firestore initialized');
-    firebaseOk = true;
+  } catch (e) {
+    console.error('Firebase init failed, using local JSON fallback:', e.message);
   }
-} catch (e) {
-  console.error('Firebase init failed, using local JSON fallback:', e.message);
 }
 
-if (!firebaseOk) {
+if (!db) {
   console.log('Using local JSON database fallback.');
 
   const DATA_DIR = process.env.VERCEL ? '/tmp/genesis-data' : path.join(__dirname, '..', 'data');
