@@ -32,8 +32,22 @@ export default function Inquiries() {
     } catch (err) { alert('Error deleting'); }
   };
 
-  const handleExport = () => {
-    window.open(`${API}/inquiries/export`, '_blank');
+  const handleExport = async () => {
+    try {
+      const res = await axios.get(`${API}/inquiries/export`, {
+        ...headers(),
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'admission-inquiries.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      alert('Error exporting inquiries');
+    }
   };
 
   const statusBadge = (status) => {

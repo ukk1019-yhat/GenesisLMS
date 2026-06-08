@@ -239,10 +239,15 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
   const path = require('path');
   const fs = require('fs');
 
+  const uploadDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
   const useDisk = !process.env.VERCEL;
   const storage = useDisk
     ? multer.diskStorage({
-        destination: path.join(__dirname, '..', 'uploads'),
+        destination: uploadDir,
         filename: (req, file, cb) => cb(null, `${Date.now()}-import.xlsx`),
       })
     : multer.memoryStorage();
@@ -272,29 +277,72 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws);
 
-      if (!rows.length) return res.status(400).json({ error: 'Excel file is empty' });
+      // Key normalization helper (e.g. "Roll no" -> "rollno", "Father name" -> "fathername")
+      const normalizeKey = (key) => key.toLowerCase().replace(/[^a-z0-9]/g, '');
 
       let imported = 0, errors = [];
       for (const row of rows) {
         try {
-          await db.collection('students').add({
-            photo_url: '',
-            name: row.Name || row.name || '',
-            roll_number: String(row.RollNumber || row.roll_number || row['Roll No'] || ''),
-            class: String(row.Class || row.class || ''),
-            section: String(row.Section || row.section || ''),
-            parent_name: String(row.ParentName || row.parent_name || row['Parent Name'] || ''),
-            parent_phone: String(row.ParentPhone || row.parent_phone || row['Parent Phone'] || ''),
-            parent_email: String(row.ParentEmail || row.parent_email || row['Parent Email'] || ''),
-            address: String(row.Address || row.address || ''),
-            blood_group: String(row.BloodGroup || row.blood_group || row['Blood Group'] || ''),
-            transport_route: String(row.TransportRoute || row.transport_route || ''),
-            pen_number: String(row.PENNumber || row.pen_number || row['PEN Number'] || ''),
-            student_type: String(row.StudentType || row.student_type || row['Student Type'] || 'dayscholar'),
-            admission_date: new Date().toISOString().split('T')[0],
-            created_at: new Date().toISOString(),
+          const normRow = {};
+          for (const k of Object.keys(row)) {
+            normRow[normalizeKey(k)] = row[k];
+          }
+
+          const name = String(normRow.name || '').trim();
+          const roll_number = String(
+            normRow.rollno !== undefined ? normRow.rollno :
+            (normRow.rollnumber !== undefined ? normRow.rollnumber :
+            (normRow.roll !== undefined ? normRow.roll : ''))
+          ).trim();
+          const cls = String(
+            normRow.class !== undefined ? normRow.class :
+            (normRow.grade !== undefined ? normRow.grade : '')
+          ).trim();
+
+          if (!name || !roll_number || !cls) {
+            errors.push({ row: name || 'unknown', error: 'Name, Roll Number (Roll no/Roll Number/Roll), and Class are required' });
+            continue;
+          }
+
+          let parent_name = '';
+          if (normRow.fathername && normRow.mothername) {
+            parent_name = `Father: ${normRow.fathername}, Mother: ${normRow.mothername}`;
+          } else {
+            parent_name = String(normRow.fathername || normRow.mothername || normRow.parentname || normRow.parent || '').trim();
+          }
+
+          const studentData = {
+            photo_url: String(normRow.photo || normRow.photourl || normRow.image || '').trim(),
+            name,
+            roll_number,
+            class: cls,
+            section: String(normRow.section || '').trim(),
+            parent_name,
+            parent_phone: String(normRow.phone || normRow.parentphone || normRow.mobile || normRow.parentmobile || '').trim(),
+            parent_email: String(normRow.parentemail || normRow.email || '').trim(),
+            address: String(normRow.address || '').trim(),
+            blood_group: String(normRow.bloodgroup || normRow.bg || '').trim(),
+            transport_route: String(normRow.transportroute || normRow.route || '').trim(),
+            pen_number: String(normRow.penno || normRow.pen || normRow.pennumber || '').trim(),
+            student_type: String(normRow.studenttype || normRow.type || 'dayscholar').trim().toLowerCase(),
+            admission_date: normRow.admissiondate || new Date().toISOString().split('T')[0],
             updated_at: new Date().toISOString(),
-          });
+          };
+
+          const existing = await db.collection('students')
+            .where('roll_number', '==', roll_number)
+            .limit(1)
+            .get();
+
+          if (!existing.empty) {
+            const docId = existing.docs[0].id;
+            await db.collection('students').doc(docId).update(studentData);
+          } else {
+            await db.collection('students').add({
+              ...studentData,
+              created_at: new Date().toISOString(),
+            });
+          }
           imported++;
         } catch (e) {
           errors.push({ row: row.Name || row.name || 'unknown', error: e.message });
@@ -302,7 +350,8 @@ router.post('/bulk-import-excel', authenticate, authorize('admin'), (req, res) =
       }
 
       await db.collection('audit_logs').add({
-        user_id: req.user.id, action: 'BULK_IMPORT_EXCEL',
+        user_id: req.user.id,
+        action: 'BULK_IMPORT_EXCEL',
         entity_type: 'student',
         details: `Imported ${imported} students from Excel, ${errors.length} errors`,
         created_at: new Date().toISOString(),

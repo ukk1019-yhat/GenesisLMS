@@ -1,27 +1,5 @@
 require('dotenv').config();
-const admin = require('firebase-admin');
-
-const serviceAccount = (() => {
-  const env = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (env) return JSON.parse(env);
-  try {
-    return require('../firebase-service-account.json');
-  } catch {
-    return null;
-  }
-})();
-
-if (!serviceAccount) {
-  console.error('Firebase service account not found');
-  process.exit(1);
-}
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: process.env.FIREBASE_DATABASE_URL,
-});
-
-const db = admin.firestore();
+const db = require('../config/db');
 
 const collections = ['students', 'fees', 'marks', 'attendance', 'audit_logs', 'inquiries'];
 

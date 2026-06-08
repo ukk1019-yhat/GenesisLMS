@@ -1,30 +1,240 @@
 const admin = require('firebase-admin');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
-let serviceAccount;
+let db;
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-} else {
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
-  try {
-    serviceAccount = require(path.resolve(serviceAccountPath));
-  } catch (err) {
-    console.error('Firebase service account key not found at', serviceAccountPath);
-    console.error('Set FIREBASE_SERVICE_ACCOUNT_JSON env var or provide the file');
-    process.exit(1);
+// Check if credentials are provided in env or file
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
+const resolvedServiceAccountPath = path.resolve(serviceAccountPath);
+const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.existsSync(resolvedServiceAccountPath);
+
+if (hasServiceAccount) {
+  let serviceAccount;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  } else {
+    serviceAccount = require(resolvedServiceAccountPath);
   }
-}
 
-if (admin.apps.length === 0) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL,
-  });
-}
+  if (admin.apps.length === 0) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+    });
+  }
 
-const db = admin.firestore();
-console.log('Firebase Firestore initialized');
+  db = admin.firestore();
+  console.log('Firebase Firestore initialized');
+} else {
+  console.log('Firebase credentials not found. Using local JSON database fallback.');
+
+  const DATA_DIR = path.join(__dirname, '..', 'data');
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+
+  function readCollection(name) {
+    const file = path.join(DATA_DIR, `${name}.json`);
+    if (!fs.existsSync(file)) return [];
+    try {
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function writeCollection(name, data) {
+    const file = path.join(DATA_DIR, `${name}.json`);
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  }
+
+  class LocalFirestore {
+    collection(name) {
+      return new LocalCollection(name);
+    }
+    batch() {
+      return new LocalBatch();
+    }
+  }
+
+  class LocalCollection {
+    constructor(name, queries = [], limitVal = null, orderByVal = null) {
+      this.name = name;
+      this.queries = queries;
+      this.limitVal = limitVal;
+      this.orderByVal = orderByVal;
+    }
+
+    where(field, op, value) {
+      return new LocalCollection(
+        this.name,
+        [...this.queries, { field, op, value }],
+        this.limitVal,
+        this.orderByVal
+      );
+    }
+
+    limit(n) {
+      return new LocalCollection(this.name, this.queries, n, this.orderByVal);
+    }
+
+    orderBy(field, direction = 'asc') {
+      return new LocalCollection(this.name, this.queries, this.limitVal, { field, direction });
+    }
+
+    doc(id) {
+      return new LocalDocumentReference(this.name, id);
+    }
+
+    async add(data) {
+      const docs = readCollection(this.name);
+      const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const newDoc = { id, ...data };
+      docs.push(newDoc);
+      writeCollection(this.name, docs);
+      return new LocalDocumentReference(this.name, id);
+    }
+
+    async get() {
+      let docs = readCollection(this.name);
+
+      for (const q of this.queries) {
+        docs = docs.filter(d => {
+          const val = d[q.field];
+          if (q.op === '==') return val === q.value;
+          if (q.op === '!=') return val !== q.value;
+          if (q.op === '>') return val > q.value;
+          if (q.op === '>=') return val >= q.value;
+          if (q.op === '<') return val < q.value;
+          if (q.op === '<=') return val <= q.value;
+          if (q.op === 'array-contains') return Array.isArray(val) && val.includes(q.value);
+          if (q.op === 'in') return Array.isArray(q.value) && q.value.includes(val);
+          return false;
+        });
+      }
+
+      if (this.orderByVal) {
+        const { field, direction } = this.orderByVal;
+        docs.sort((a, b) => {
+          const valA = a[field];
+          const valB = b[field];
+          if (valA === undefined) return 1;
+          if (valB === undefined) return -1;
+          if (valA < valB) return direction === 'desc' ? 1 : -1;
+          if (valA > valB) return direction === 'desc' ? -1 : 1;
+          return 0;
+        });
+      }
+
+      if (this.limitVal !== null) {
+        docs = docs.slice(0, this.limitVal);
+      }
+
+      const docSnapshots = docs.map(d => {
+        const { id, ...data } = d;
+        return new LocalDocumentSnapshot(id, data, true, this.name);
+      });
+
+      return new LocalQuerySnapshot(docSnapshots);
+    }
+  }
+
+  class LocalDocumentReference {
+    constructor(collectionName, id) {
+      this.collectionName = collectionName;
+      this.id = id;
+    }
+
+    async get() {
+      const docs = readCollection(this.collectionName);
+      const found = docs.find(d => d.id === this.id);
+      if (!found) {
+        return new LocalDocumentSnapshot(this.id, null, false, this.collectionName);
+      }
+      const { id, ...data } = found;
+      return new LocalDocumentSnapshot(this.id, data, true, this.collectionName);
+    }
+
+    async update(updates) {
+      const docs = readCollection(this.collectionName);
+      const index = docs.findIndex(d => d.id === this.id);
+      if (index === -1) {
+        throw new Error(`Document not found: ${this.id}`);
+      }
+      docs[index] = { ...docs[index], ...updates };
+      writeCollection(this.collectionName, docs);
+    }
+
+    async set(data) {
+      const docs = readCollection(this.collectionName);
+      const index = docs.findIndex(d => d.id === this.id);
+      if (index === -1) {
+        docs.push({ id: this.id, ...data });
+      } else {
+        docs[index] = { id: this.id, ...data };
+      }
+      writeCollection(this.collectionName, docs);
+    }
+
+    async delete() {
+      const docs = readCollection(this.collectionName);
+      const filtered = docs.filter(d => d.id !== this.id);
+      writeCollection(this.collectionName, filtered);
+    }
+  }
+
+  class LocalDocumentSnapshot {
+    constructor(id, dataVal, existsFlag, collectionName) {
+      this.id = id;
+      this.dataVal = dataVal;
+      this.exists = existsFlag;
+      this.ref = new LocalDocumentReference(collectionName, id);
+    }
+
+    data() {
+      return this.dataVal;
+    }
+  }
+
+  class LocalQuerySnapshot {
+    constructor(docs) {
+      this.docs = docs;
+      this.empty = docs.length === 0;
+    }
+  }
+
+  class LocalBatch {
+    constructor() {
+      this.ops = [];
+    }
+    delete(ref) {
+      this.ops.push({ action: 'delete', ref });
+      return this;
+    }
+    update(ref, data) {
+      this.ops.push({ action: 'update', ref, data });
+      return this;
+    }
+    set(ref, data) {
+      this.ops.push({ action: 'set', ref, data });
+      return this;
+    }
+    async commit() {
+      for (const op of this.ops) {
+        if (op.action === 'delete') {
+          await op.ref.delete();
+        } else if (op.action === 'update') {
+          await op.ref.update(op.data);
+        } else if (op.action === 'set') {
+          await op.ref.set(op.data);
+        }
+      }
+    }
+  }
+
+  db = new LocalFirestore();
+}
 
 module.exports = db;
