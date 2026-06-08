@@ -23,17 +23,34 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 }
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [classDist, setClassDist] = useState([]);
   const [feeMonthly, setFeeMonthly] = useState([]);
 
   useEffect(() => {
+    setMounted(true);
     axios.get(`${API}/dashboard/stats`, headers()).then(r => setStats(r.data)).catch(() => {});
     axios.get(`${API}/dashboard/recent-activities`, headers()).then(r => setActivities(r.data)).catch(() => {});
     axios.get(`${API}/dashboard/class-distribution`, headers()).then(r => setClassDist(r.data)).catch(() => {});
     axios.get(`${API}/dashboard/fee-summary-by-month`, headers()).then(r => setFeeMonthly(r.data)).catch(() => {});
   }, []);
+
+  if (!mounted) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-school-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading Dashboard...</p>
+            </div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>

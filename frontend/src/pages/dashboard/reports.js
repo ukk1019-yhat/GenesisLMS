@@ -12,6 +12,7 @@ const COLORS = ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
 
 export default function Reports() {
   const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState(null);
   const [classDist, setClassDist] = useState([]);
   const [feeMonthly, setFeeMonthly] = useState([]);
@@ -21,6 +22,7 @@ export default function Reports() {
   const [pendingFees, setPendingFees] = useState([]);
 
   useEffect(() => {
+    setMounted(true);
     axios.get(`${API}/dashboard/stats`, headers()).then(r => setStats(r.data)).catch(() => {});
     axios.get(`${API}/dashboard/class-distribution`, headers()).then(r => setClassDist(r.data)).catch(() => {});
     axios.get(`${API}/dashboard/fee-summary-by-month`, headers()).then(r => setFeeMonthly(r.data)).catch(() => {});
@@ -30,6 +32,21 @@ export default function Reports() {
       axios.get(`${API}/fees/pending-reminders`, headers()).then(r => setPendingFees(r.data)).catch(() => {});
     }
   }, [reportMonth, reportYear]);
+
+  if (!mounted) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-school-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading Reports...</p>
+            </div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
 
   const totalStudents = classDist.reduce((sum, c) => sum + parseInt(c.count), 0);
   const statCards = [
