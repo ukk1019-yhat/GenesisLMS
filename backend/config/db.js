@@ -30,7 +30,7 @@ if (hasServiceAccount) {
 } else {
   console.log('Firebase credentials not found. Using local JSON database fallback.');
 
-  const DATA_DIR = path.join(__dirname, '..', 'data');
+  const DATA_DIR = process.env.VERCEL ? '/tmp/genesis-data' : path.join(__dirname, '..', 'data');
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -235,6 +235,28 @@ if (hasServiceAccount) {
   }
 
   db = new LocalFirestore();
+
+  // Auto-seed default users if users collection is empty
+  (async () => {
+    const snap = await db.collection('users').limit(1).get();
+    if (snap.empty) {
+      const bcrypt = require('bcryptjs');
+      const defaultUsers = [
+        { name: 'School Admin', email: 'admin@school.com', password: await bcrypt.hash('admin123', 10), role: 'admin', phone: '9876543210' },
+        { name: 'John Teacher', email: 'teacher@school.com', password: await bcrypt.hash('admin123', 10), role: 'teacher', phone: '9876543211' },
+        { name: 'Jane Accountant', email: 'accountant@school.com', password: await bcrypt.hash('admin123', 10), role: 'accountant', phone: '9876543212' },
+        { name: 'Vindhiya', email: 'vindhiyakota@gmail.com', password: await bcrypt.hash('vindhiya#1019', 10), role: 'teacher', phone: '', subject: 'Nursery' },
+        { name: 'Sailaja', email: 'sailuamma30@gmail.com', password: await bcrypt.hash('sailu#1019', 10), role: 'teacher', phone: '', subject: 'Nursery' },
+        { name: 'Kiran', email: 'kiran.paridala@gmail.com', password: await bcrypt.hash('kiran#1019', 10), role: 'teacher', phone: '', subject: 'UKG' },
+        { name: 'Swetha', email: 'sanapalaswethauma@gmail.com', password: await bcrypt.hash('sana#1019', 10), role: 'teacher', phone: '', subject: 'Playgroup' },
+        { name: 'Susan', email: 'sweetynsp@gmail.com', password: await bcrypt.hash('sweety#1019', 10), role: 'teacher', phone: '', subject: 'Playgroup' },
+      ];
+      for (const u of defaultUsers) {
+        await db.collection('users').add(u);
+      }
+      console.log('Seeded default users into local database');
+    }
+  })();
 }
 
 module.exports = db;
