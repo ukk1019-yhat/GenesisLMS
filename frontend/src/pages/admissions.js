@@ -18,7 +18,8 @@ export default function Admissions() {
       await axios.post(`${API}/inquiries`, form);
       setSubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+      const msg = err.response?.data?.error;
+      setError(typeof msg === 'string' ? msg : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
