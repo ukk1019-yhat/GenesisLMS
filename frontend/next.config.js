@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Force Vercel rebuild trigger
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
