@@ -14,6 +14,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    if (db.ready) await db.ready;
+
     const usersSnap = await db.collection('users')
       .where('email', '==', email.toLowerCase())
       .limit(1)
@@ -31,19 +33,25 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET is not set');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     const token = jwt.sign(
       { id: user.id, name: user.name, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
     );
 
-    await db.collection('audit_logs').add({
+    db.collection('audit_logs').add({
       user_id: user.id,
       action: 'LOGIN',
       entity_type: 'user',
       details: `User ${user.email} logged in`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
     res.json({
       token,

@@ -1,34 +1,42 @@
-const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
 let db;
 
-// Check if credentials are provided in env or file
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
-const resolvedServiceAccountPath = path.resolve(serviceAccountPath);
-const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.existsSync(resolvedServiceAccountPath);
+// Try to initialize Firebase; fall back to local JSON on any failure
+let firebaseOk = false;
+try {
+  const admin = require('firebase-admin');
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || './firebase-service-account.json';
+  const resolvedServiceAccountPath = path.resolve(serviceAccountPath);
+  const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON || fs.existsSync(resolvedServiceAccountPath);
 
-if (hasServiceAccount) {
-  let serviceAccount;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  } else {
-    serviceAccount = require(resolvedServiceAccountPath);
+  if (hasServiceAccount) {
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } else {
+      serviceAccount = require(resolvedServiceAccountPath);
+    }
+
+    if (admin.apps.length === 0) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+      });
+    }
+
+    db = admin.firestore();
+    console.log('Firebase Firestore initialized');
+    firebaseOk = true;
   }
+} catch (e) {
+  console.error('Firebase init failed, using local JSON fallback:', e.message);
+}
 
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL,
-    });
-  }
-
-  db = admin.firestore();
-  console.log('Firebase Firestore initialized');
-} else {
-  console.log('Firebase credentials not found. Using local JSON database fallback.');
+if (!firebaseOk) {
+  console.log('Using local JSON database fallback.');
 
   const DATA_DIR = process.env.VERCEL ? '/tmp/genesis-data' : path.join(__dirname, '..', 'data');
   if (!fs.existsSync(DATA_DIR)) {
@@ -237,26 +245,33 @@ if (hasServiceAccount) {
   db = new LocalFirestore();
 
   // Auto-seed default users if users collection is empty
-  (async () => {
-    const snap = await db.collection('users').limit(1).get();
-    if (snap.empty) {
-      const bcrypt = require('bcryptjs');
-      const defaultUsers = [
-        { name: 'School Admin', email: 'admin@school.com', password: await bcrypt.hash('admin123', 10), role: 'admin', phone: '9876543210' },
-        { name: 'John Teacher', email: 'teacher@school.com', password: await bcrypt.hash('admin123', 10), role: 'teacher', phone: '9876543211' },
-        { name: 'Jane Accountant', email: 'accountant@school.com', password: await bcrypt.hash('admin123', 10), role: 'accountant', phone: '9876543212' },
-        { name: 'Vindhiya', email: 'vindhiyakota@gmail.com', password: await bcrypt.hash('vindhiya#1019', 10), role: 'teacher', phone: '', subject: 'Nursery' },
-        { name: 'Sailaja', email: 'sailuamma30@gmail.com', password: await bcrypt.hash('sailu#1019', 10), role: 'teacher', phone: '', subject: 'Nursery' },
-        { name: 'Kiran', email: 'kiran.paridala@gmail.com', password: await bcrypt.hash('kiran#1019', 10), role: 'teacher', phone: '', subject: 'UKG' },
-        { name: 'Swetha', email: 'sanapalaswethauma@gmail.com', password: await bcrypt.hash('sana#1019', 10), role: 'teacher', phone: '', subject: 'Playgroup' },
-        { name: 'Susan', email: 'sweetynsp@gmail.com', password: await bcrypt.hash('sweety#1019', 10), role: 'teacher', phone: '', subject: 'Playgroup' },
-      ];
-      for (const u of defaultUsers) {
-        await db.collection('users').add(u);
+  db.ready = (async () => {
+    try {
+      const snap = await db.collection('users').limit(1).get();
+      if (snap.empty) {
+        const bcrypt = require('bcryptjs');
+        const ad = async (p) => await bcrypt.hash(p, 10);
+        const defaultUsers = [
+          { name: 'School Admin', email: 'admin@school.com', password: await ad('admin123'), role: 'admin', phone: '9876543210' },
+          { name: 'John Teacher', email: 'teacher@school.com', password: await ad('admin123'), role: 'teacher', phone: '9876543211' },
+          { name: 'Jane Accountant', email: 'accountant@school.com', password: await ad('admin123'), role: 'accountant', phone: '9876543212' },
+          { name: 'Vindhiya', email: 'vindhiyakota@gmail.com', password: await ad('vindhiya#1019'), role: 'teacher', phone: '', subject: 'Nursery' },
+          { name: 'Sailaja', email: 'sailuamma30@gmail.com', password: await ad('sailu#1019'), role: 'teacher', phone: '', subject: 'Nursery' },
+          { name: 'Kiran', email: 'kiran.paridala@gmail.com', password: await ad('kiran#1019'), role: 'teacher', phone: '', subject: 'UKG' },
+          { name: 'Swetha', email: 'sanapalaswethauma@gmail.com', password: await ad('sana#1019'), role: 'teacher', phone: '', subject: 'Playgroup' },
+          { name: 'Susan', email: 'sweetynsp@gmail.com', password: await ad('sweety#1019'), role: 'teacher', phone: '', subject: 'Playgroup' },
+        ];
+        for (const u of defaultUsers) {
+          await db.collection('users').add(u);
+        }
+        console.log('Seeded default users into local database');
       }
-      console.log('Seeded default users into local database');
+    } catch (e) {
+      console.error('Auto-seed error:', e);
     }
   })();
+} else {
+  db.ready = Promise.resolve();
 }
 
 module.exports = db;
